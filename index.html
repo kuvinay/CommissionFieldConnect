@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Commission - Sales App</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js for Reports -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #e5e7eb;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        /* Mobile Device Frame styling */
+        #app-frame {
+            width: 100%;
+            max-width: 414px;
+            height: 100vh;
+            max-height: 896px;
+            background-color: #f8fafc;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        @media (min-width: 415px) {
+            #app-frame {
+                height: 90vh;
+                border-radius: 2rem;
+                border: 8px solid #1f2937;
+            }
+        }
+        /* Hide scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Sidebar transition */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar-open {
+            transform: translateX(0);
+        }
+        .sidebar-closed {
+            transform: translateX(-100%);
+        }
+
+        /* View transitions */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .view-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Fluid Tab Styles (Neck Design) */
+        .tab-slider-wrapper {
+            background-color: #ffffff;
+            padding-top: 8px;
+            overflow: hidden;
+        }
+        .tab-slider-container {
+            position: relative;
+            display: flex;
+            border-bottom: 4px solid #f8fafc; /* Match main background */
+        }
+        .tab-slider-bg {
+            position: absolute;
+            bottom: -4px; /* Cover the border */
+            left: 0;
+            width: 50%;
+            height: calc(100% + 4px);
+            background-color: #f8fafc; /* Seamlessly blend into the main background */
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 0;
+        }
+        .tab-slider-bg::before, .tab-slider-bg::after {
+            content: '';
+            position: absolute;
+            bottom: 4px; /* Sit right on top of the bottom border */
+            width: 20px;
+            height: 20px;
+            background-color: transparent;
+            pointer-events: none;
+        }
+        /* Create the inverted curves using box-shadow trick */
+        .tab-slider-bg::before {
+            left: -20px;
+            border-bottom-right-radius: 20px;
+            box-shadow: 10px 10px 0 10px #f8fafc;
+        }
+        .tab-slider-bg::after {
+            right: -20px;
+            border-bottom-left-radius: 20px;
+            box-shadow: -10px 10px 0 10px #f8fafc;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-frame" class="flex flex-col relative">
+        
+        <!-- Sidebar Overlay -->
+        <div id="sidebar-overlay" class="absolute inset-0 bg-gray-900 bg-opacity-50 z-50 hidden" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar Drawer -->
+        <div id="sidebar" class="absolute inset-y-0 left-0 w-64 max-w-[80%] bg-white shadow-xl z-50 sidebar-closed flex flex-col">
+            <div class="p-6 bg-brand-600 text-white rounded-br-3xl">
+                <div class="flex items-center space-x-4">
+                    <img src="https://placehold.co/100x100/1e3a8a/ffffff?text=JD" alt="User Profile" class="w-12 h-12 rounded-full border-2 border-white">
+                    <div>
+                        <h2 class="text-lg font-semibold">John Doe</h2>
+                        <p class="text-brand-100 text-sm">Senior Sales Rep</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-4 py-6 space-y-4 overflow-y-auto">
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-home w-5 text-center"></i>
+                    <span class="font-medium">Home Page</span>
+                </a>
+                
+                <!-- My Commission Menu (Simplified) -->
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 bg-brand-50 text-brand-600 rounded-xl transition-colors">
+                    <i class="fas fa-chart-pie w-5 text-center"></i>
+                    <span class="font-medium">My Commission</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- App Header -->
+        <header class="bg-white px-5 py-4 flex items-center justify-between shadow-sm z-30 sticky top-0">
+            <button onclick="toggleSidebar()" class="text-gray-600 hover:text-brand-600 focus:outline-none p-1">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <h1 class="text-lg font-semibold text-gray-800">My Commission</h1>
+            <button class="text-gray-600 hover:text-brand-600 p-1 relative">
+                <i class="fas fa-bell text-xl"></i>
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>
+            </button>
+        </header>
+
+        <!-- Main Content Area (Scrollable) -->
+        <main class="flex-1 overflow-y-auto bg-slate-50 no-scrollbar relative">
+            
+            <!-- Top Navigation Tabs (Fluid Neck Design) -->
+            <div id="top-nav-tabs" class="tab-slider-wrapper sticky top-0 z-20 shadow-sm">
+                <div class="tab-slider-container">
+                    <div id="tab-slider" class="tab-slider-bg"></div>
+                    <button onclick="switchMainTab('dashboard', 0)" id="tab-btn-dashboard" class="flex-1 py-3 text-center relative z-10 text-brand-600 font-bold text-sm transition-colors duration-300">
+                        Dashboard
+                    </button>
+                    <button onclick="switchMainTab('details', 1)" id="tab-btn-details" class="flex-1 py-3 text-center relative z-10 text-gray-400 hover:text-gray-700 font-bold text-sm transition-colors duration-300">
+                        Deal Details
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 1: DASHBOARD ================= -->
+            <div id="view-dashboard" class="view-section active">
+                <div class="px-5 pt-5 pb-6">
+                    
+                    <!-- Current Month (Primary Focus) -->
+                    <div class="bg-gradient-to-br from-brand-600 to-brand-800 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden mb-4">
+                        <div class="absolute top-0 right-0 opacity-10">
+                            <i class="fas fa-wallet text-9xl -mt-4 -mr-4"></i>
+                        </div>
+                        <div class="relative z-10 flex justify-between items-start">
+                            <div>
+                                <p class="text-brand-100 text-sm font-medium mb-1">Current Month</p>
+                                <h3 id="kpi-current" class="text-4xl font-bold mb-0 leading-none" data-value="$3,240<span class='text-xl text-brand-200'>.50</span>">$XXXX<span class="text-xl text-brand-200">.XX</span></h3>
+                                <p class="text-xs text-brand-200 mt-2">Total Commission Earned</p>
+                            </div>
+                            <div class="text-right flex flex-col items-end">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <button onclick="toggleAmountVisibility()" class="text-white/70 hover:text-white focus:outline-none transition-colors" title="Toggle privacy mode">
+                                        <i id="eye-icon-mask" class="fas fa-eye-slash"></i>
+                                    </button>
+                                    <span class="bg-white/20 px-2 py-0.5 rounded text-xs font-bold inline-block">June</span>
+                                </div>
+                                <div class="inline-block bg-black/20 backdrop-blur-sm px-2 py-1 rounded-md text-[9px] font-semibold text-white border border-white/10">
+                                    <i class="fas fa-calendar-check mr-1"></i> Paid on: 07/05/2026
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row for Previous & Total Earnings -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <!-- Previous Month -->
+                        <div class="bg-indigo-50 rounded-2xl p-4 shadow-sm border border-indigo-100">
+                            <div class="flex items-center text-indigo-700 text-xs font-medium mb-2">
+                                <i class="fas fa-history mr-1.5"></i> Previous Month
+                            </div>
+                            <h4 id="kpi-prev" class="text-xl font-bold text-gray-800" data-value="$2,980.00">$XXXX.XX</h4>
+                            <p class="text-[10px] text-green-600 mt-1"><i class="fas fa-arrow-up mr-1"></i> 8.7% vs May</p>
+                        </div>
+                        
+                        <!-- Total Earnings -->
+                        <div class="bg-gradient-to-br from-green-500 to-green-700 rounded-2xl p-4 shadow-sm relative overflow-hidden text-white">
+                            <div class="absolute top-0 right-0 opacity-10">
+                                <i class="fas fa-money-bill-wave text-6xl -mt-2 -mr-2"></i>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="flex items-center text-green-100 text-xs font-medium mb-2">
+                                    <i class="fas fa-money-bill-wave mr-1.5"></i> Total Earnings
+                                </div>
+                                <h4 id="kpi-total" class="text-xl font-bold" data-value="$15,850.00">$XXXX.XX</h4>
+                                <p class="text-[10px] text-green-100 mt-1"><i class="fas fa-check-circle mr-1"></i> Lifetime</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Deals Section with My Statement -->
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-bold text-gray-800">Recent Deals</h3>
+                        <button onclick="openStatementModal()" class="text-brand-600 bg-brand-50 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center hover:bg-brand-100 transition-colors shadow-sm">
+                            <i class="fas fa-file-invoice mr-1.5"></i> My Statement
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-pizza-slice"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800 text-sm">Joe's Pizza</p>
+                                    <p class="text-[10px] text-gray-500">POS Hardware • Jun 25</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-600">+$150.00</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-coffee"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800 text-sm">Downtown Cafe</p>
+                                    <p class="text-[10px] text-gray-500">Software Lic. • Jun 23</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-600">+$420.00</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-fish"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800 text-sm">Sushi Zen</p>
+                                    <p class="text-[10px] text-gray-500">Order Kiosk • Jun 20</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-600">+$900.00</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-shopping-basket"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800 text-sm">Fresh Mart</p>
+                                    <p class="text-[10px] text-gray-500">Inventory Sys. • Jun 18</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-600">+$360.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 2: DETAILS (DEALS) ================= -->
+            <div id="view-details" class="view-section">
+                <div class="px-5 pt-4 pb-2">
+                    <div class="space-y-3">
+                        <!-- Restaurant Deal 1 -->
+                        <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
+                            <div class="flex items-center space-x-3 mb-3 border-b border-gray-100 pb-3">
+                                <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xl">
+                                    <i class="fas fa-pizza-slice"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <h4 class="font-bold text-gray-800 text-lg">Joe's Pizza</h4>
+                                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">Paid</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-0.5">POS Hardware • Jun 25</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                    <p class="text-sm font-semibold text-gray-800">$500.00</p>
+                                </div>
+                                <div class="text-right border-l border-gray-100 pl-4">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                    <span class="text-lg font-black text-green-600">+$150.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Restaurant Deal 2 -->
+                        <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
+                            <div class="flex items-center space-x-3 mb-3 border-b border-gray-100 pb-3">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xl">
+                                    <i class="fas fa-coffee"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <h4 class="font-bold text-gray-800 text-lg">Downtown Cafe</h4>
+                                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">Paid</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-0.5">Software Lic. • Jun 23</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                    <p class="text-sm font-semibold text-gray-800">$1,400.00</p>
+                                </div>
+                                <div class="text-right border-l border-gray-100 pl-4">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                    <span class="text-lg font-black text-green-600">+$420.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Restaurant Deal 3 -->
+                        <div class="bg-white rounded-3xl p-4 shadow-sm border border-yellow-200">
+                            <div class="flex items-center space-x-3 mb-3 border-b border-gray-100 pb-3">
+                                <div class="w-12 h-12 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center font-bold text-xl">
+                                    <i class="fas fa-hamburger"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <h4 class="font-bold text-gray-800 text-lg">Burger Queen</h4>
+                                        <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">Pending</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-0.5">Self-Serve Kiosks • Jun 22</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                    <p class="text-sm font-semibold text-gray-800">$2,500.00</p>
+                                </div>
+                                <div class="text-right border-l border-gray-100 pl-4">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                    <span class="text-lg font-black text-yellow-600">+$750.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Store Deal 4 -->
+                        <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
+                            <div class="flex items-center space-x-3 mb-3 border-b border-gray-100 pb-3">
+                                <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl">
+                                    <i class="fas fa-shopping-basket"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <h4 class="font-bold text-gray-800 text-lg">Fresh Mart Groceries</h4>
+                                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">Paid</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-0.5">Inventory Software • Jun 15</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                    <p class="text-sm font-semibold text-gray-800">$1,200.00</p>
+                                </div>
+                                <div class="text-right border-l border-gray-100 pl-4">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                    <span class="text-lg font-black text-green-600">+$360.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW 3: REPORTS (STATEMENT DETAILS) ================= -->
+            <div id="view-reports" class="view-section">
+                <div class="px-5 pt-4 pb-6">
+                    <div class="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
+                        <h2 class="text-xl font-bold text-gray-800">Statement Details</h2>
+                        <button onclick="closeStatementView()" class="text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors shadow-sm">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                    </div>
+
+                    <!-- Accordion Merged List -->
+                    <div class="space-y-4">
+                        
+                        <!-- Month Group 1: June -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <!-- Accordion Header -->
+                            <button onclick="toggleAccordion('acc-june')" class="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none">
+                                <div class="text-left flex-1">
+                                    <h3 class="font-bold text-gray-800">June 2026</h3>
+                                    <p class="text-[10px] text-gray-500 mt-0.5">3 Deals Closed</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                        <p class="text-xs font-semibold text-gray-800">$4,400</p>
+                                    </div>
+                                    <div class="text-right border-l border-gray-200 pl-3">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                        <p class="text-sm font-bold text-green-600">$1,320</p>
+                                    </div>
+                                    <i id="icon-acc-june" class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300 ml-1"></i>
+                                </div>
+                            </button>
+                            <!-- Expanded Deals List -->
+                            <div id="acc-june" class="hidden border-t border-gray-100">
+                                <ul class="divide-y divide-gray-50">
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Joe's Pizza</p>
+                                            <p class="text-[10px] text-gray-500">Jun 25</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$150.00</span>
+                                    </li>
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Downtown Cafe</p>
+                                            <p class="text-[10px] text-gray-500">Jun 23</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$420.00</span>
+                                    </li>
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Burger Queen</p>
+                                            <p class="text-[10px] text-gray-500">Jun 22</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-yellow-500">+$750.00</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Month Group 2: May -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <!-- Accordion Header -->
+                            <button onclick="toggleAccordion('acc-may')" class="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none">
+                                <div class="text-left flex-1">
+                                    <h3 class="font-bold text-gray-800">May 2026</h3>
+                                    <p class="text-[10px] text-gray-500 mt-0.5">2 Deals Closed</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                        <p class="text-xs font-semibold text-gray-800">$6,800</p>
+                                    </div>
+                                    <div class="text-right border-l border-gray-200 pl-3">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                        <p class="text-sm font-bold text-green-600">$2,040</p>
+                                    </div>
+                                    <i id="icon-acc-may" class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300 ml-1"></i>
+                                </div>
+                            </button>
+                            <!-- Expanded Deals List -->
+                            <div id="acc-may" class="hidden border-t border-gray-100">
+                                <ul class="divide-y divide-gray-50">
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">The Rusty Spoon</p>
+                                            <p class="text-[10px] text-gray-500">May 18</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$1,500.00</span>
+                                    </li>
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Fresh Mart Groceries</p>
+                                            <p class="text-[10px] text-gray-500">May 12</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$540.00</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Month Group 3: April -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <button onclick="toggleAccordion('acc-apr')" class="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none">
+                                <div class="text-left flex-1">
+                                    <h3 class="font-bold text-gray-800">April 2026</h3>
+                                    <p class="text-[10px] text-gray-500 mt-0.5">4 Deals Closed</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                        <p class="text-xs font-semibold text-gray-800">$8,250</p>
+                                    </div>
+                                    <div class="text-right border-l border-gray-200 pl-3">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                        <p class="text-sm font-bold text-green-600">$2,475</p>
+                                    </div>
+                                    <i id="icon-acc-apr" class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300 ml-1"></i>
+                                </div>
+                            </button>
+                            <div id="acc-apr" class="hidden border-t border-gray-100">
+                                <ul class="divide-y divide-gray-50">
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Corner Bakery</p>
+                                            <p class="text-[10px] text-gray-500">Apr 28</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$800.00</span>
+                                    </li>
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Taco Fiesta</p>
+                                            <p class="text-[10px] text-gray-500">Apr 20</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$450.00</span>
+                                    </li>
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Tech Fix Store</p>
+                                            <p class="text-[10px] text-gray-500">Apr 15</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$625.00</span>
+                                    </li>
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Vegan Bites</p>
+                                            <p class="text-[10px] text-gray-500">Apr 04</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$600.00</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Month Group 4: March -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <button onclick="toggleAccordion('acc-mar')" class="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none">
+                                <div class="text-left flex-1">
+                                    <h3 class="font-bold text-gray-800">March 2026</h3>
+                                    <p class="text-[10px] text-gray-500 mt-0.5">2 Deals Closed</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Revenue</p>
+                                        <p class="text-xs font-semibold text-gray-800">$5,100</p>
+                                    </div>
+                                    <div class="text-right border-l border-gray-200 pl-3">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Commission</p>
+                                        <p class="text-sm font-bold text-green-600">$1,530</p>
+                                    </div>
+                                    <i id="icon-acc-mar" class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300 ml-1"></i>
+                                </div>
+                            </button>
+                            <div id="acc-mar" class="hidden border-t border-gray-100">
+                                <ul class="divide-y divide-gray-50">
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">City Supermarket</p>
+                                            <p class="text-[10px] text-gray-500">Mar 22</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$1,100.00</span>
+                                    </li>
+                                    <li class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800">Bob's Burgers</p>
+                                            <p class="text-[10px] text-gray-500">Mar 08</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-green-600">+$430.00</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        
+        <!-- My Statement Modal Overlay -->
+        <div id="statement-modal" class="absolute inset-0 bg-gray-900 bg-opacity-50 z-50 hidden justify-center items-center">
+            <div class="bg-white rounded-2xl w-11/12 max-w-sm overflow-hidden shadow-xl transform transition-all m-4">
+                <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-800 text-lg">My Statement</h3>
+                    <button onclick="closeStatementModal()" class="text-gray-400 hover:text-gray-700 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm border border-gray-100 transition-colors"><i class="fas fa-times"></i></button>
+                </div>
+                <!-- Tabs -->
+                <div class="flex border-b border-gray-100 bg-white">
+                    <button onclick="switchStmtTab('months')" id="stmt-tab-months" class="w-1/2 py-3 text-sm font-semibold text-brand-600 border-b-2 border-brand-600 transition-colors">Months</button>
+                    <button onclick="switchStmtTab('fy')" id="stmt-tab-fy" class="w-1/2 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-800 transition-colors">Financial Year</button>
+                </div>
+                <!-- Content Months -->
+                <div id="stmt-content-months" class="p-5 space-y-4 bg-white block">
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="stmt_month" value="last1" class="text-brand-600 w-4 h-4 accent-brand-600" onchange="toggleDateRange(false)" checked>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-brand-600 transition-colors">Last Month</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="stmt_month" value="last3" class="text-brand-600 w-4 h-4 accent-brand-600" onchange="toggleDateRange(false)">
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-brand-600 transition-colors">Last 3 Months</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="stmt_month" value="last6" class="text-brand-600 w-4 h-4 accent-brand-600" onchange="toggleDateRange(false)">
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-brand-600 transition-colors">Last 6 Months</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="stmt_month" value="custom" class="text-brand-600 w-4 h-4 accent-brand-600" onchange="toggleDateRange(true)">
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-brand-600 transition-colors">Date Range</span>
+                    </label>
+                    
+                    <div id="date-range-inputs" class="hidden mt-3 pl-7 flex space-x-3">
+                        <div class="w-1/2">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Start</label>
+                            <input type="date" class="w-full border border-gray-200 rounded-lg p-2 text-xs text-gray-700 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                        </div>
+                        <div class="w-1/2">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">End</label>
+                            <input type="date" class="w-full border border-gray-200 rounded-lg p-2 text-xs text-gray-700 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                        </div>
+                    </div>
+                </div>
+                <!-- Content FY -->
+                <div id="stmt-content-fy" class="p-5 space-y-4 bg-white hidden">
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="stmt_fy" value="2526" class="text-brand-600 w-4 h-4 accent-brand-600" checked>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-brand-600 transition-colors">FY 2025-2026</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="stmt_fy" value="2425" class="text-brand-600 w-4 h-4 accent-brand-600">
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-brand-600 transition-colors">FY 2024-2025</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="stmt_fy" value="2324" class="text-brand-600 w-4 h-4 accent-brand-600">
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-brand-600 transition-colors">FY 2023-2024</span>
+                    </label>
+                </div>
+                <!-- Footer -->
+                <div class="p-5 pt-2 bg-white flex space-x-3">
+                    <button onclick="viewStatementReport()" class="w-1/2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl py-3 text-sm font-bold flex justify-center items-center transition-colors">
+                        <i class="fas fa-eye mr-2"></i> View
+                    </button>
+                    <button class="w-1/2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl py-3 text-sm font-bold flex justify-center items-center shadow-md transition-colors">
+                        <i class="fas fa-file-csv mr-2 text-lg"></i> CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Sidebar Logic ---
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidebar() {
+            if (sidebar.classList.contains('sidebar-closed')) {
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.remove('sidebar-open');
+                sidebar.classList.add('sidebar-closed');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // --- Sidebar Navigation Logic ---
+        
+        // FIX: Added the missing accordion toggle logic!
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        function switchMainTab(viewId, index = 0) {
+            // Animate slider position and update text colors
+            const slider = document.getElementById('tab-slider');
+            if (slider && index !== null) {
+                slider.style.transform = `translateX(${index * 100}%)`;
+            }
+
+            const btnDash = document.getElementById('tab-btn-dashboard');
+            const btnDetails = document.getElementById('tab-btn-details');
+            const topNavTabs = document.getElementById('top-nav-tabs');
+
+            if (viewId === 'dashboard') {
+                btnDash.classList.add('text-brand-600');
+                btnDash.classList.remove('text-gray-400', 'hover:text-gray-700');
+                btnDetails.classList.remove('text-brand-600');
+                btnDetails.classList.add('text-gray-400', 'hover:text-gray-700');
+                if (topNavTabs) topNavTabs.style.display = 'block';
+            } else if (viewId === 'details') {
+                btnDetails.classList.add('text-brand-600');
+                btnDetails.classList.remove('text-gray-400', 'hover:text-gray-700');
+                btnDash.classList.remove('text-brand-600');
+                btnDash.classList.add('text-gray-400', 'hover:text-gray-700');
+                if (topNavTabs) topNavTabs.style.display = 'block';
+            } else if (viewId === 'reports') {
+                if (topNavTabs) topNavTabs.style.display = 'none';
+            }
+
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(view => {
+                view.classList.remove('active');
+            });
+
+            // Show target view
+            document.getElementById(`view-${viewId}`).classList.add('active');
+        }
+
+        // --- Statement Modal Logic ---
+        function openStatementModal() {
+            document.getElementById('statement-modal').classList.remove('hidden');
+            document.getElementById('statement-modal').classList.add('flex');
+        }
+
+        function closeStatementModal() {
+            document.getElementById('statement-modal').classList.add('hidden');
+            document.getElementById('statement-modal').classList.remove('flex');
+        }
+
+        function switchStmtTab(tab) {
+            // Style tabs
+            document.getElementById('stmt-tab-months').className = tab === 'months' 
+                ? 'w-1/2 py-3 text-sm font-semibold text-brand-600 border-b-2 border-brand-600 transition-colors'
+                : 'w-1/2 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent transition-colors hover:text-gray-800';
+            
+            document.getElementById('stmt-tab-fy').className = tab === 'fy' 
+                ? 'w-1/2 py-3 text-sm font-semibold text-brand-600 border-b-2 border-brand-600 transition-colors'
+                : 'w-1/2 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent transition-colors hover:text-gray-800';
+
+            // Show/Hide content
+            document.getElementById('stmt-content-months').style.display = tab === 'months' ? 'block' : 'none';
+            document.getElementById('stmt-content-fy').style.display = tab === 'fy' ? 'block' : 'none';
+        }
+
+        function toggleDateRange(show) {
+            if(show) {
+                document.getElementById('date-range-inputs').classList.remove('hidden');
+            } else {
+                document.getElementById('date-range-inputs').classList.add('hidden');
+            }
+        }
+
+        function closeStatementView() {
+            // Re-select the Dashboard tab programmatically to return from Statement screen
+            switchMainTab('dashboard', 0);
+        }
+
+        // --- View Statement Logic ---
+        function viewStatementReport() {
+            closeStatementModal();
+            // Switch to reports view, unhighlighting all top tabs
+            switchMainTab('reports', null);
+        }
+
+        // --- Privacy Masking Logic ---
+        let isAmountMasked = true;
+        
+        function toggleAmountVisibility() {
+            isAmountMasked = !isAmountMasked;
+            const icon = document.getElementById('eye-icon-mask');
+            
+            const currentKpi = document.getElementById('kpi-current');
+            const prevKpi = document.getElementById('kpi-prev');
+            const totalKpi = document.getElementById('kpi-total');
+
+            if (isAmountMasked) {
+                // Apply Mask
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+                
+                currentKpi.innerHTML = '$XXXX<span class="text-xl text-brand-200">.XX</span>';
+                prevKpi.innerHTML = '$XXXX.XX';
+                totalKpi.innerHTML = '$XXXX.XX';
+            } else {
+                // Reveal Amounts
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+                
+                currentKpi.innerHTML = currentKpi.getAttribute('data-value');
+                prevKpi.innerHTML = prevKpi.getAttribute('data-value');
+                totalKpi.innerHTML = totalKpi.getAttribute('data-value');
+            }
+        }
+    </script>
+</body>
+</html>
